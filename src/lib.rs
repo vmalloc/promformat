@@ -1,16 +1,11 @@
 use std::fmt::Write;
 
+#[derive(Default)]
 pub struct Metrics {
     buffer: String,
 }
 
 impl Metrics {
-    pub fn new() -> Self {
-        Self {
-            buffer: Default::default(),
-        }
-    }
-
     pub fn gauge<'a>(&'a mut self, name: &str, help: &str) -> MetricGroup<'a> {
         self.metric_group("gauge", name, help)
     }
@@ -90,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_gauge() {
-        let mut metrics = Metrics::new();
+        let mut metrics = Metrics::default();
 
         let mut gauge = metrics.gauge("testme", "help here");
         gauge.label("x", "y").set(2);
