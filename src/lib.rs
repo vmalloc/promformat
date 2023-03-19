@@ -67,9 +67,9 @@ pub struct SingleMetric<'a, 'b> {
 impl<'a, 'b> SingleMetric<'a, 'b> {
     pub fn label(mut self, label: &str, value: &str) -> Self {
         if self.labels.is_empty() {
-            self.labels.push_str("{")
+            self.labels.push('{')
         } else {
-            self.labels.push_str(",")
+            self.labels.push(',')
         }
 
         // TODO: escaping
@@ -79,7 +79,7 @@ impl<'a, 'b> SingleMetric<'a, 'b> {
     }
 
     pub fn set(mut self, value: impl std::fmt::Display) {
-        self.labels.push_str("}");
+        self.labels.push('}');
         writeln!(self.metrics.buffer, "{}{} {value}", self.name, self.labels).unwrap();
     }
 }
