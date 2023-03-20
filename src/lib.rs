@@ -6,6 +6,10 @@ pub struct Metrics {
 }
 
 impl Metrics {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn gauge<'a>(&'a mut self, name: &str, help: &str) -> MetricGroup<'a> {
         self.metric_group("gauge", name, help)
     }
@@ -43,7 +47,7 @@ impl<'a> MetricGroup<'a> {
         }
     }
 
-    pub fn label(&mut self, label: &str, value: &str) -> SingleMetric {
+    pub fn label(&mut self, label: impl AsRef<str>, value: impl AsRef<str>) -> SingleMetric {
         SingleMetric {
             name: &self.name,
             metrics: self.metrics,
@@ -60,7 +64,9 @@ pub struct SingleMetric<'a, 'b> {
 }
 
 impl<'a, 'b> SingleMetric<'a, 'b> {
-    pub fn label(mut self, label: &str, value: &str) -> Self {
+    pub fn label(mut self, label: impl AsRef<str>, value: impl AsRef<str>) -> Self {
+        let label = label.as_ref();
+        let value = value.as_ref();
         if self.labels.is_empty() {
             self.labels.push('{')
         } else {
