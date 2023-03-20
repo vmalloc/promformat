@@ -55,6 +55,15 @@ impl<'a> MetricGroup<'a> {
         }
         .label(label, value)
     }
+
+    pub fn set(self, value: impl std::fmt::Display) {
+        SingleMetric {
+            name: &self.name,
+            metrics: self.metrics,
+            labels: String::from("{"),
+        }
+        .set(value)
+    }
 }
 
 pub struct SingleMetric<'a, 'b> {
@@ -103,6 +112,21 @@ mod tests {
 # TYPE testme gauge
 testme{x="y"} 2
 testme{a="b",c="d"} 20
+"#
+        );
+    }
+
+    #[test]
+    fn test_gauge_no_labels() {
+        let mut metrics = Metrics::default();
+
+        metrics.gauge("testme", "help here").set(20);
+
+        assert_eq!(
+            metrics.render(),
+            r#"# HELP testme help here
+# TYPE testme gauge
+testme{} 20
 "#
         );
     }
