@@ -30,6 +30,10 @@ impl Metrics {
     pub fn render(&self) -> &str {
         &self.buffer
     }
+
+    pub fn into_rendered(self) -> String {
+        self.buffer
+    }
 }
 
 pub struct MetricGroup<'a> {
