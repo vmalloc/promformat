@@ -2,7 +2,7 @@
 name = "promformat"
 description = "Simple formatter for prometheus metrics"
 authors = ["Rotem Yaari"]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://github.com/vmalloc/promformat"
