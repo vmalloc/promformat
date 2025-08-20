@@ -1,5 +1,34 @@
 use std::fmt::Write;
 
+pub trait TimestampLike {
+    fn as_prometheus_timestamp(&self) -> i64;
+}
+
+impl TimestampLike for std::time::SystemTime {
+    fn as_prometheus_timestamp(&self) -> i64 {
+        self.duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as i64
+    }
+}
+
+#[cfg(feature = "chrono")]
+impl<H: chrono::TimeZone> TimestampLike for chrono::DateTime<H> {
+    fn as_prometheus_timestamp(&self) -> i64 {
+        self.timestamp_millis()
+    }
+}
+
+#[cfg(feature = "time")]
+const NANOS_PER_MILLI: i128 = 1_000_000;
+
+#[cfg(feature = "time")]
+impl TimestampLike for time::OffsetDateTime {
+    fn as_prometheus_timestamp(&self) -> i64 {
+        (self.unix_timestamp_nanos() / NANOS_PER_MILLI) as i64
+    }
+}
+
 #[derive(Default)]
 pub struct Metrics {
     buffer: String,
@@ -72,6 +101,15 @@ impl<'a> MetricGroup<'a> {
         }
         .set(value)
     }
+
+    pub fn set_with_timestamp(self, value: impl std::fmt::Display, timestamp: impl TimestampLike) {
+        SingleMetric {
+            name: &self.name,
+            metrics: self.metrics,
+            labels: String::from("{"),
+        }
+        .set_with_timestamp(value, timestamp)
+    }
 }
 
 pub struct SingleMetric<'a, 'b> {
@@ -99,6 +137,21 @@ impl<'a, 'b> SingleMetric<'a, 'b> {
     pub fn set(mut self, value: impl std::fmt::Display) {
         self.labels.push('}');
         writeln!(self.metrics.buffer, "{}{} {value}", self.name, self.labels).unwrap();
+    }
+
+    pub fn set_with_timestamp(
+        mut self,
+        value: impl std::fmt::Display,
+        timestamp: impl TimestampLike,
+    ) {
+        self.labels.push('}');
+        let unix_millis = timestamp.as_prometheus_timestamp();
+        writeln!(
+            self.metrics.buffer,
+            "{}{} {value} {unix_millis}",
+            self.name, self.labels
+        )
+        .unwrap();
     }
 }
 
@@ -135,6 +188,69 @@ testme{a="b",c="d"} 20
             r#"# HELP testme help here
 # TYPE testme gauge
 testme{} 20
+"#
+        );
+    }
+
+    #[test]
+    fn test_gauge_timestamp_systemtime() {
+        let mut metrics = Metrics::default();
+        let now = std::time::UNIX_EPOCH + std::time::Duration::from_secs(259200);
+
+        metrics
+            .gauge("testme", "help here")
+            .set_with_timestamp(20, now);
+
+        assert_eq!(
+            metrics.render(),
+            r#"# HELP testme help here
+# TYPE testme gauge
+testme{} 20 259200000
+"#
+        );
+    }
+
+    #[cfg(feature = "chrono")]
+    #[test]
+    fn test_gauge_timestamp_chrono() {
+        use chrono::{TimeZone, Utc};
+
+        let mut metrics = Metrics::default();
+        let now = Utc.with_ymd_and_hms(2025, 8, 19, 21, 31, 5).unwrap();
+
+        metrics
+            .gauge("testme", "help here")
+            .set_with_timestamp(20, now);
+
+        assert_eq!(
+            metrics.render(),
+            r#"# HELP testme help here
+# TYPE testme gauge
+testme{} 20 1755639065000
+"#
+        );
+    }
+
+    #[cfg(feature = "time")]
+    #[test]
+    fn test_gauge_timestamp_time() {
+        use time::{Date, Month, OffsetDateTime, Time};
+
+        let mut metrics = Metrics::default();
+        let now = OffsetDateTime::new_utc(
+            Date::from_calendar_date(2025, Month::August, 19).unwrap(),
+            Time::from_hms_nano(21, 31, 5, 0).unwrap(),
+        );
+
+        metrics
+            .gauge("testme", "help here")
+            .set_with_timestamp(20, now);
+
+        assert_eq!(
+            metrics.render(),
+            r#"# HELP testme help here
+# TYPE testme gauge
+testme{} 20 1755639065000
 "#
         );
     }
