@@ -51,7 +51,11 @@ impl<'a> MetricGroup<'a> {
         }
     }
 
-    pub fn label(&mut self, label: impl AsRef<str>, value: impl AsRef<str>) -> SingleMetric {
+    pub fn label(
+        &mut self,
+        label: impl AsRef<str>,
+        value: impl AsRef<str>,
+    ) -> SingleMetric<'_, '_> {
         SingleMetric {
             name: &self.name,
             metrics: self.metrics,
