@@ -29,6 +29,20 @@ impl TimestampLike for time::OffsetDateTime {
     }
 }
 
+#[cfg(feature = "jiff")]
+impl TimestampLike for jiff::Timestamp {
+    fn as_prometheus_timestamp(&self) -> i64 {
+        self.as_millisecond()
+    }
+}
+
+#[cfg(feature = "jiff")]
+impl TimestampLike for jiff::ZonedDateTime {
+    fn as_prometheus_timestamp(&self) -> i64 {
+        self.timestamp().as_prometheus_timestamp()
+    }
+}
+
 #[derive(Default)]
 pub struct Metrics {
     buffer: String,
@@ -251,6 +265,46 @@ testme{} 20 1755639065000
             r#"# HELP testme help here
 # TYPE testme gauge
 testme{} 20 1755639065000
+"#
+        );
+    }
+
+    #[cfg(feature = "jiff")]
+    #[test]
+    fn test_gauge_timestamp_jiff_timestamp() {
+        let mut metrics = Metrics::default();
+        let now_timestamp = jiff::Timestamp::new(1795152773, 731111111).unwrap();
+
+        metrics
+            .gauge("testme", "help here")
+            .set_with_timestamp(20, now_timestamp);
+
+        assert_eq!(
+            metrics.render(),
+            r#"# HELP testme help here
+# TYPE testme gauge
+testme{} 20 1795152773731
+"#
+        );
+    }
+
+    #[cfg(feature = "jiff")]
+    #[test]
+    fn test_gauge_timestamp_jiff_zoned_datetime() {
+        let mut metrics = Metrics::default();
+        let now_dt: jiff::ZonedDateTime = "2026-11-19T21:32:53.7311222[America/Los_Angeles]"
+            .parse()
+            .unwrap();
+
+        metrics
+            .gauge("testme", "help here")
+            .set_with_timestamp(20, now_dt);
+
+        assert_eq!(
+            metrics.render(),
+            r#"# HELP testme help here
+# TYPE testme gauge
+testme{} 20 1795152773731
 "#
         );
     }
