@@ -3,6 +3,7 @@ name = "promformat"
 description = "Simple formatter for prometheus metrics"
 authors = ["Rotem Yaari"]
 version = "0.4.1"
+rust-version = "1.88.0"
 edition = "2021"
 license = "Apache-2.0"
 homepage = "https://github.com/vmalloc/promformat"
@@ -11,5 +12,6 @@ keywords = ["prometheus", "metrics"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = {version = "0.4", optional = true}
-time = {version = "0.3", optional = true}
+chrono = { version = "0.4", optional = true }
+jiff = { version = "1.0", optional = true }
+time = { version = "0.3", optional = true }
